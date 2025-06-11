@@ -3,11 +3,20 @@
 // However, you must not change the surface API presented from this file,
 // and you should not need to change any other files in the project to complete the challenge
 
+import { useEffect, useState } from 'react';
+import { Data } from '../application/validation';
+import axios from 'axios';
+
 type UseCachingFetch = (url: string) => {
   isLoading: boolean;
-  data: unknown;
+  data: Data | null;
   error: Error | null;
 };
+
+/**
+ * An in-memory cache to store fetched data.
+ */
+const cache: Record<string, Data> = {};
 
 /**
  * 1. Implement a caching fetch hook. The hook should return an object with the following properties:
@@ -27,14 +36,38 @@ type UseCachingFetch = (url: string) => {
  * 4. This file passes a type-check.
  *
  */
-export const useCachingFetch: UseCachingFetch = (url) => {
-  return {
-    data: null,
-    isLoading: false,
-    error: new Error(
-      'UseCachingFetch has not been implemented, please read the instructions in DevTask.md',
-    ),
-  };
+
+/**
+ * Custom hook to fetch data with caching.
+ *
+ * @param {string} url - The URL to fetch data from.
+ * @returns UseCachingFetch - An object containing isLoading, data, and error properties.
+ */
+export const useCachingFetch: UseCachingFetch = (url: string) => {
+  const [data, setData] = useState<Data | null>(() => {
+    // Return cached data immediately if available
+    return cache[url] || null;
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    // If data is already cached and assigned above, no need to re-fetch
+    if (data) return;
+
+    // If not cached, perform the fetch
+    setIsLoading(true);
+    axios
+      .get(url)
+      .then((response) => {
+        cache[url] = response.data; // Store the fetched data in the cache
+        setData(response.data);
+      })
+      .catch(setError)
+      .finally(() => setIsLoading(false));
+  }, [url]);
+
+  return { data, isLoading, error };
 };
 
 /**
@@ -51,10 +84,23 @@ export const useCachingFetch: UseCachingFetch = (url) => {
  * 3. This file passes a type-check.
  *
  */
+
+/**
+ * 
+ * @param url 
+ * @returns 
+ */
 export const preloadCachingFetch = async (url: string): Promise<void> => {
-  throw new Error(
-    'preloadCachingFetch has not been implemented, please read the instructions in DevTask.md',
-  );
+  // If data is already cached, no need to preload again
+  if (cache[url]) return;
+
+  try {
+    const response = await axios.get<Data>(url);
+    cache[url] = response.data; // Store the fetched data in the cache
+  } catch (error) {
+    console.error(`Error preloading data for URL ${url}:`, error);
+    throw error; // Re-throw the error if needed for logging purposes
+  }
 };
 
 /**
@@ -73,8 +119,38 @@ export const preloadCachingFetch = async (url: string): Promise<void> => {
  * 4. This file passes a type-check.
  *
  */
-export const serializeCache = (): string => '';
 
-export const initializeCache = (serializedCache: string): void => {};
+/**
+ * Serializes the cache to a JSON string.
+ *
+ * @returns {string} - The serialized cache.
+ */
+export const serializeCache = (): string => {
+  try {
+    return JSON.stringify(cache);
+  } catch (error) {
+    console.error('Error serializing cache:', error);
+    return '{}';
+  }
+};
 
-export const wipeCache = (): void => {};
+/**
+ * Initializes the cache from a serialized cache string.
+ *
+ * @param {string} serializedCache - The serialized cache string.
+ */
+export const initializeCache = (serializedCache: string): void => {
+  try {
+    const parsedCache = JSON.parse(serializedCache) as Record<string, Data>;
+    Object.assign(cache, parsedCache);
+  } catch (error) {
+    console.error('Error initializing cache:', error);
+  }
+};
+
+/**
+ * Wipes the cache by deleting all its entries.
+ */
+export const wipeCache = (): void => {
+  Object.keys(cache).forEach((key) => delete cache[key]);
+};
