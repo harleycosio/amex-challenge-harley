@@ -10,7 +10,7 @@
     "start": "npm run build && node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Harley Cruz",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.12.12",
