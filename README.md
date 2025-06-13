@@ -10,14 +10,14 @@ This is an exercise to evaluate my skills as a Full-Stack developer regarding up
 ## Installation
 
 ```bash
-$ npm install
+npm install
 ```
 
 ## Running the app
 
 ```bash
 # development
-$ npm start
+npm start
 
 ### Stay in touch
 
